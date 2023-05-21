@@ -1,0 +1,41 @@
+version: "3.4"
+
+# Dockerホスト上に作成されるデータボリューム
+volumes:
+    dbstore:
+
+services:
+
+    ngingx:
+        build: build-containers/nginx-1.16
+        ports:
+            - 85:80
+            - 448:443
+        volumes:
+              # localのパス:対応させるdocker上のパス
+            - ./mini_blog:/var/www/html
+
+    php-fpm:
+        #明示的に stop がされない限り、終了ステータスに関係なく常に再起動が行われる
+        # (最後にdocker daemon が起動していた際に ステータスが終了状態だった場合は再起動しない。)
+        restart: unless-stopped
+        build: build-containers/php-fpm
+        volumes:
+            - ./mini_blog:/var/www/html
+
+    mysql:
+        image: mysql:8.0.29
+        restart: unless-stopped
+        environment:
+            MYSQL_ROOT_PASSWORD: root
+            TZ: 'Asis/Tokyo'
+        ports:
+            - 3303:3306
+        volumes:
+            - dbstore:/var/lib/mysql
+
+    composer:
+        image: composer:2.4.2
+        working_dir: /app/mini_blog
+        volumes:
+            - .:/app/mini_blog
